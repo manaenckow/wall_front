@@ -6,9 +6,7 @@ import './Post.css';
 
 const Post = props => (
 	<Panel id={props.id}>
-		<PanelHeader
-			left={<PanelHeaderBack onClick={props.go} data-to="home"/>}
-		>
+		<PanelHeader left={<PanelHeaderBack onClick={props.go} data-to="home"/>}>
 			Запись
 		</PanelHeader>
 

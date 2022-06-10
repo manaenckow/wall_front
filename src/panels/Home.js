@@ -43,7 +43,6 @@ const Home = ({id, wall, setModal, snackbar}) => {
                     wall && wall.length && wall.map ?
                         <CardGrid size="l">
                             {wall ? wall.map((post, key) => {
-                                console.log(post)
                                 return (
                                     <ContentCard
                                         key={key}
