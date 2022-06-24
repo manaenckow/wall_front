@@ -16,7 +16,7 @@ import {
 } from '@vkontakte/vkui';
 import {Icon56WriteOutline} from "@vkontakte/icons";
 
-const Home = ({id, wall, setModal, snackbar}) => {
+const Home = ({id, wall, setModal, snackbar, setActivePost, setActivePanel}) => {
     console.log(wall)
     return (
         <Panel id={id}>
@@ -48,7 +48,11 @@ const Home = ({id, wall, setModal, snackbar}) => {
                                         key={key}
                                         subtitle={post.title}
                                         header={post.small_description}
-                                        caption={post.description}
+                                        // caption={post.description}
+                                        onClick={() => {
+                                            setActivePost(post);
+                                            setActivePanel('post');
+                                        }}
                                     />
                                 )
                             }) : null}

@@ -7,7 +7,7 @@ import {
     ConfigProvider,
     SplitLayout,
     SplitCol,
-    ModalRoot, ModalCard, Textarea, Button, FormLayout, FormItem, Input, Avatar, Snackbar
+    ModalRoot, ModalCard, Textarea, Button, FormLayout, FormItem, Input, Avatar, Snackbar, ActionSheet, ActionSheetItem
 } from '@vkontakte/vkui';
 import '@vkontakte/vkui/dist/vkui.css';
 
@@ -17,16 +17,21 @@ import Post from './panels/Post';
 import {Icon16Cancel, Icon16Clear, Icon16Done} from "@vkontakte/icons";
 
 const App = () => {
-    const [scheme, setScheme] = useState('bright_light')
+    const [scheme, setScheme] = useState('bright_light') //
     const [activePanel, setActivePanel] = useState('home');
     const [error, setError] = useState(0);
     const [title, setTitle] = useState(undefined);
+    const [author, setAuthor] = useState(undefined);
+    const [commentText, setCommentText] = useState(undefined);
     const [small_description, setSmall_description] = useState(undefined);
     const [description, setDescription] = useState(undefined);
     const [wall, setWall] = useState([]);
+    const [activePost, setActivePost] = useState([]);
     const [popout, setPopout] = useState(<ScreenSpinner size='large'/>);
     const [snackbar, setSnackbar] = useState(null);
     const [activeModal, setActiveModal] = useState(null);
+
+    const baseTargetRef = React.useRef();
 
     useEffect(() => {
         try {
@@ -35,7 +40,7 @@ const App = () => {
             setWall([]);
         }
         setPopout(null);
-    }, [snackbar]);
+    }, [activePost]);
 
     const go = e => {
         setActivePanel(e.currentTarget.dataset.to);
@@ -69,20 +74,18 @@ const App = () => {
 
     const createPost = () => {
         const wall_data = wall;
-        setError(1);
 
-        if (!title?.trim()) {
+
+        if (!title?.trim() || !small_description?.trim() || !description?.trim()) {
+            setError(1);
             return //showSnackBar(1, '');
-        } else if (!small_description?.trim()) {
-            return //showSnackBar(1, 'Краткое описание должно быть длиннее 10-ти символов');
-        } else if (!description?.trim()) {
-            return //showSnackBar(1, 'Краткое описание не должно быть длиннее 200 символов');
         }
 
         wall_data.push({
             title,
             small_description,
             description,
+            comments: [],
             id: parseInt(Math.random() * 1e7)
         });
 
@@ -96,6 +99,71 @@ const App = () => {
         setDescription(undefined);
         setError(0);
     }
+
+    const createComment = (post_id) => {
+        let wall_data = wall;
+
+        if (!author?.trim() || !commentText?.trim()) {
+            setError(1);
+            return //showSnackBar(1, '');
+        }
+
+        const comment_data = {id: parseInt(Math.random() * 1e7), author, text: commentText};
+
+        wall_data.forEach(e => {
+            console.log(e.id === post_id)
+            if (e.id === post_id) {
+                e.comments ? e.comments.push(comment_data) : e.comments = [comment_data];
+                setActivePost(e);
+                console.log(e)
+            }
+        })
+
+
+        setWall(wall_data);
+        localStorage.wall = JSON.stringify(wall_data);
+
+        setActiveModal(null);
+
+        setAuthor(undefined);
+        setCommentText(undefined);
+
+        setError(0);
+    }
+
+    const deleteComment = (comment_id) => {
+        let wall_data = wall;
+
+        wall_data.forEach(e => {
+            if (e.id === activePost.id) {
+                e.comments ? e.comments = e.comments.filter(e => e.id !== comment_id) : e.comments = [];
+                setActivePost(e);
+                console.log(e)
+            }
+        })
+
+        setWall(wall_data);
+        localStorage.wall = JSON.stringify(wall_data);
+    }
+
+    const showActionSheet = () =>
+        setPopout(
+            <ActionSheet
+                onClose={() => setPopout(null)}
+                iosCloseItem={
+                    <ActionSheetItem autoclose mode="cancel">
+                        Отменить
+                    </ActionSheetItem>
+                }
+                toggleRef={baseTargetRef}
+            >
+                <ActionSheetItem autoclose>Редактировать запись</ActionSheetItem>
+                <ActionSheetItem autoclose mode="destructive">
+                    Удалить запись
+                </ActionSheetItem>
+            </ActionSheet>
+        );
+
 
     const modal = (
         <ModalRoot
@@ -141,14 +209,46 @@ const App = () => {
                     </FormItem>
                 </FormLayout>
             </ModalCard>
+            <ModalCard
+                id={'comment'}
+                onClose={() => setActiveModal(null)}
+                header="Комментарий"
+                actions={
+                    <Button
+                        size="l"
+                        mode="primary"
+                        onClick={() => {
+                            createComment(activePost.id);
+                        }}
+                    >
+                        Опубликовать
+                    </Button>
+                }
+            >
+                <FormLayout style={{margin: -12}}>
+                    <FormItem top='Автор'
+                              status={(author === undefined && !error) ? "" : author?.trim() ? "valid" : "error"}
+                              bottom={author === undefined ? "" : author.trim() ? '' : 'Поле не может быть пустым'}>
+                        <Input placeholder='Альберт Энштейн' value={author || ''}
+                               onChange={(e) => setAuthor(e.currentTarget.value?.trim())}/>
+                    </FormItem>
+                    <FormItem top='Комментарий'
+                              status={(commentText === undefined && !error) ? "" : commentText?.trim() ? "valid" : "error"}
+                              bottom={commentText === undefined ? "" : commentText.trim() ? '' : 'Поле не может быть пустым'}>
+                        <Input placeholder='Этот пост просто огонь!'
+                               value={commentText || ''}
+                               onChange={(e) => setCommentText(e.currentTarget.value?.trim())}/>
+                    </FormItem>
+                </FormLayout>
+            </ModalCard>
         </ModalRoot>
     )
 
 
-    const props = {wall, snackbar, setModal, go};
+    const props = {wall, snackbar, setModal, go, activePost, setActivePost, setActivePanel, deleteComment, showActionSheet};
 
     return (
-        <ConfigProvider scheme={scheme}>
+        <ConfigProvider scheme={scheme} webviewType='internal'>
             <AdaptivityProvider>
                 <AppRoot>
                     <SplitLayout popout={popout} modal={modal}>
